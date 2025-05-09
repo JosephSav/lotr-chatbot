@@ -2,6 +2,7 @@ import os
 import pickle
 from sentence_transformers import SentenceTransformer
 import faiss
+import numpy as np
 
 EMBED_MODEL_NAME = "all-MiniLM-L6-v2"
 EMBEDDINGS_PATH = "faiss_index/data.pkl"
@@ -51,6 +52,16 @@ def load_index():
     with open(EMBEDDINGS_PATH, "rb") as f:
         data = pickle.load(f)
     return data["index"], data["embeddings"], data["chunks"]
+
+
+def get_top_k_chunks(query, embedder, index, docs, k=3):
+    query_embedding = embedder.encode([query])
+
+    dists, idxs = index.search(np.array(query_embedding).astype("float32"), k)
+
+    top_chunks = [docs[i] for i in idxs[0]]
+
+    return top_chunks
 
 
 if __name__ == "__main__":
