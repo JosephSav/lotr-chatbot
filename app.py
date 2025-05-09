@@ -4,9 +4,7 @@ from sentence_transformers import SentenceTransformer
 import requests
 import os
 
-HF_API_URL = (
-    "https://router.huggingface.co/hf-inference/models/deepset/roberta-base-squad2"
-)
+HF_API_URL = "https://router.huggingface.co/nebius/v1/chat/completions"
 HF_HEADERS = {"Authorization": f"Bearer {os.environ['HF_API_TOKEN']}"}
 
 # Load embeddings
@@ -17,14 +15,19 @@ embedder = SentenceTransformer("all-MiniLM-L6-v2")
 def query_model(prompt):
     try:
         response = requests.post(
-            HF_API_URL, headers=HF_HEADERS, json={"inputs": prompt}
+            # HF_API_URL, headers=HF_HEADERS, json={"inputs": prompt}
+            HF_API_URL,
+            headers=HF_HEADERS,
+            # json={prompt},
+            json=prompt,
         )
         response.raise_for_status()  # Will raise an exception for HTTP error responses
-        print(f"Response: {response.json()}")  # Print the full response to debug
+        data = response.json()
         # Try to extract the answer key correctly
-        return response.json()[
-            "answer"
-        ]  # Adjust if needed based on the actual structure
+        # return response.json()[
+        #     "answer"
+        # ]  # Adjust if needed based on the actual structure
+        return data["choices"][0]["message"]["content"]
     except requests.exceptions.RequestException as e:
         return f"Error: {e}"
 
@@ -42,14 +45,32 @@ def answer_question(user_question, chat_history):
     # Question: {user_question}
 
     # Answer:"""
+    # prompt = {
+    #     "question": user_question,
+    #     "context": f"""
+    #                 You are to answer the question as Gandalf the Grey. You must have some
+    #                 level of character and fantasy fell to your answers, but prioritise clear answers.
+    #                 Use the following context when answering the queries:
+    #                 {context}
+    #                 """,
+    # }
     prompt = {
-        "question": user_question,
-        "context": f"""
-                    You are to answer the question as Gandalf the Grey. You must have some 
-                    level of character and fantasy fell to your answers, but prioritise clear answers. 
-                    Use the following context when answering the queries:
-                    {context}
-                    """,
+        "messages": [
+            {
+                "role": "user",
+                "content": f"""
+                        You are to answer the question as Gandalf the Grey.
+                        Your priorities:
+                        20%: Character and fantasy feel
+                        80%: Susinct answers to the user questions
+                        You may use the following context when answering the question:
+                        {context}
+
+                        Question to answer: {user_question}
+                        """,
+            }
+        ],
+        "model": "meta-llama/Meta-Llama-3.1-8B-Instruct-fast",
     }
 
     answer = query_model(prompt)
