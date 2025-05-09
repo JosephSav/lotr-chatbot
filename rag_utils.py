@@ -21,6 +21,10 @@ def split_text(text, chunk_size=300):
 
 def build_and_save_index(docs_folder):
     print("Building FAISS index...")
+
+    # Create directory if it doesn't exist
+    os.makedirs(os.path.dirname(EMBEDDINGS_PATH), exist_ok=True)
+
     docs = load_documents(docs_folder)
     chunks = []
     for doc in docs:
